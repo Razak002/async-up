@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+## 🏗️ Architecture Overview
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+Async Standup Generator
+├── Frontend (Next.js 16)
+│   ├── /app/auth - Login/Signup flows
+│   ├── /app/dashboard - Team dashboard
+│   ├── /app/manager - Manager analytics
+│   └── /components - Reusable UI components
+│
+├── Backend (Server Actions & APIs)
+│   ├── /app/actions - Server actions (auth, standups, summaries)
+│   ├── /app/api - Route handlers (AI, Slack)
+│   └── /services - Business logic
+│
+├── Database (Supabase PostgreSQL)
+│   ├── workspaces - Teams/organizations
+│   ├── workspace_members - User assignments
+│   ├── standups - Daily standup entries
+│   ├── summaries - AI-generated digests
+│   └── slack_config - Slack webhooks
+│
+└── AI & Integrations
+    ├── Vercel AI Gateway - Claude summaries
+    └── Slack API - Notifications
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🎯 Features
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### ✅ Standup Management
+- Submit daily standups (what worked, what's next, blockers)
+- View team standups with date filtering
+- Real-time submission tracking
+- History and archiving
 
-## Learn More
+### ✅ AI Summarization
+- Automatic daily summaries
+- Weekly digests
+- Structured insights (highlights, blockers, next steps)
+- Integration with Slack
 
-To learn more about Next.js, take a look at the following resources:
+### ✅ Manager Dashboard
+- Team analytics and metrics
+- Submission rate tracking
+- Blocker tracking and trends
+- Top team members and productivity insights
+- Export reports
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### ✅ Security & Multi-tenancy
+- Row Level Security on all tables
+- Workspace isolation
+- Role-based access (admin/member)
+- Secure authentication with Supabase Auth
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### ✅ Slack Integration
+- Send summaries to Slack
+- Notification preferences
+- Configurable webhook URLs
+- Formatted message blocks

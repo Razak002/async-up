@@ -2,37 +2,70 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { API_URL } from '@/lib/api-config';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { StandupCard } from '@/components/dashboard/standup-card';
 import { getStandupsByDateAction, getSubmissionStatsAction } from '@/app/actions/standups';
+import type { Standup } from '@/types';
 import { format } from 'date-fns';
 import { ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 
+interface StatsData { submitted: number; totalMembers: number; rate: number; }
+
 export default function DashboardPage() {
-  const [standups, setStandups] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
+  const [standups, setStandups] = useState<Standup[]>([]);
+  const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const today = format(new Date(), 'yyyy-MM-dd');
 
   useEffect(() => {
-    // This is a demo - will be connected to real workspace ID
-    const workspaceId = 'demo-workspace';
-    loadData(workspaceId);
+    async function initWorkspace() {
+      try {
+        const token = localStorage.getItem('auth-token');
+        if (!token) {
+          console.warn('No token, cannot load workspace');
+          setLoading(false);
+          return;
+        }
+        
+        // Fetch user's workspaces
+        const res = await fetch(`${API_URL}/api/workspaces`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (res.ok) {
+          const workspaces = await res.json();
+          if (workspaces && workspaces.length > 0) {
+            const firstWorkspace = workspaces[0];
+            loadData(firstWorkspace._id);
+            return;
+          }
+        }
+        
+        setLoading(false);
+      } catch (err) {
+        console.error('Failed to init workspace:', err);
+        setLoading(false);
+      }
+    }
+
+    initWorkspace();
   }, []);
 
   const loadData = async (workspaceId: string) => {
     try {
+      const token = localStorage.getItem('auth-token') || undefined;
       const [standupResult, statsResult] = await Promise.all([
-        getStandupsByDateAction(workspaceId, today),
-        getSubmissionStatsAction(workspaceId, today),
+        getStandupsByDateAction(workspaceId, today, token),
+        getSubmissionStatsAction(workspaceId, today, token),
       ]);
 
       if (standupResult.success) {
         setStandups(standupResult.data || []);
       }
-      if (statsResult.success) {
+      if (statsResult.success && statsResult.data) {
         setStats(statsResult.data);
       }
     } catch (error) {
@@ -49,7 +82,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
           <p className="text-muted-foreground mt-1">
-            Track your team's standups and progress
+            Track your team&apos;s standups and progress
           </p>
         </div>
         <Link href="/dashboard/submit">
@@ -65,7 +98,7 @@ export default function DashboardPage() {
         <Card className="border-border">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Today's Date
+              Today&apos;s Date
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -122,7 +155,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-foreground">
-              Today's Standups
+              Today&apos;s Standups
             </h2>
             <p className="text-muted-foreground mt-1">
               {standups.length} team members have submitted

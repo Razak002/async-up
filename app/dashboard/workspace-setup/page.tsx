@@ -103,7 +103,7 @@ export default function WorkspaceSetupPage() {
               Welcome to Async Standup
             </h1>
             <p className="text-muted-foreground">
-              Let's get your team set up. What would you like to do?
+              Let&apos;s get your team set up. What would you like to do?
             </p>
           </div>
 

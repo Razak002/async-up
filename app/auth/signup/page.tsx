@@ -1,169 +1,397 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { signUpAction } from '@/app/actions/auth';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  signUpAction,
+  signInAction,
+  getUserWorkspacesAction,
+} from "@/app/actions/auth";
+import { setAuthToken } from "@/lib/auth-token";
+import {
+  Loader2,
+  Zap,
+  Sparkles,
+  Users,
+  BrainCircuit,
+  TrendingUp,
+} from "lucide-react";
+
+const STATS = [
+  { icon: Users, value: "10x", label: "Faster team check-ins" },
+  { icon: BrainCircuit, value: "AI", label: "Summaries, auto-generated" },
+  { icon: TrendingUp, value: "0", label: "Meetings replaced" },
+];
 
 export default function SignupPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
 
-  const handleSignup = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const cb = new URLSearchParams(window.location.search).get("callbackUrl");
+      if (cb) setCallbackUrl(cb);
+    }
+  }, []);
+
+  const handleChange = (field: string, value: string) =>
+    setFormData((prev) => ({ ...prev, [field]: value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
       return;
     }
-
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters");
       return;
     }
 
     setLoading(true);
-
     try {
-      const result = await signUpAction(email, password);
-      if (!result.success) {
-        setError(result.error || 'Failed to sign up');
+      const signupResult = await signUpAction(
+        formData.email,
+        formData.password,
+      );
+      if (!signupResult.success) {
+        setError(signupResult.error || "Signup failed");
         return;
       }
-      router.push('/dashboard/workspace-setup');
-    } catch (err) {
-      setError('An unexpected error occurred');
-      console.error(err);
+
+      const signinResult = await signInAction(
+        formData.email,
+        formData.password,
+      );
+      if (!signinResult.success || !signinResult.data?.accessToken) {
+        setError("Account created! Please log in.");
+        setTimeout(() => router.push("/auth/login"), 2000);
+        return;
+      }
+
+      setAuthToken(signinResult.data.accessToken);
+      if (callbackUrl) {
+        router.push(callbackUrl);
+        return;
+      }
+
+      const workspacesRes = await getUserWorkspacesAction(
+        signinResult.data.accessToken,
+      );
+      router.push(
+        workspacesRes.success &&
+          workspacesRes.data &&
+          workspacesRes.data.length > 0
+          ? "/dashboard"
+          : "/onboarding",
+      );
+    } catch {
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted flex flex-col items-center justify-center p-4">
-      {/* Header */}
-      <div className="mb-8 text-center">
-        <Link href="/" className="inline-flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">AG</span>
+    <div className="min-h-screen flex">
+      {/* ── Left brand panel ───────────────────────── */}
+      <div
+        className="hidden lg:flex lg:w-1/2 xl:w-2/5 flex-col justify-between p-12 relative overflow-hidden"
+        style={{
+          background: "linear-gradient(145deg, #013E37 0%, #011F1B 100%)",
+        }}
+      >
+        {/* Dot grid */}
+        <div
+          className="absolute inset-0 opacity-10 pointer-events-none"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 1px 1px, #FFEFB3 1px, transparent 0)",
+            backgroundSize: "28px 28px",
+          }}
+        />
+
+        {/* Glow blobs */}
+        <div
+          className="absolute -top-16 -right-16 w-80 h-80 rounded-full blur-3xl opacity-10"
+          style={{ background: "#FFEFB3" }}
+        />
+        <div
+          className="absolute bottom-1/4 -left-8 w-56 h-56 rounded-full blur-3xl opacity-8"
+          style={{ background: "#FFE57A" }}
+        />
+
+        {/* Logo */}
+        <div className="relative flex items-center gap-3">
+          <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg shrink-0">
+            <Image
+              src="/logo.png"
+              alt="AsyncUp"
+              fill
+              className="object-cover"
+            />
           </div>
-          <span className="font-semibold text-lg text-foreground">
-            Async Standup
+          <span
+            className="text-xl font-bold text-[#FFEFB3]"
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              letterSpacing: "-0.03em",
+            }}
+          >
+            AsyncUp
           </span>
-        </Link>
+        </div>
+
+        {/* Hero copy — different from login */}
+        <div className="relative space-y-7">
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
+            style={{
+              background: "rgba(255,239,179,0.12)",
+              border: "1px solid rgba(255,239,179,0.2)",
+              color: "#FFEFB3",
+            }}
+          >
+            <Sparkles className="w-3 h-3" />
+            Your workspace is waiting
+          </div>
+
+          <h1
+            className="text-[3.2rem] font-bold text-white leading-[1.05]"
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              letterSpacing: "-0.04em",
+            }}
+          >
+            Stop chasing
+            <br />
+            updates.
+            <br />
+            <span style={{ color: "#FFEFB3" }}>Let AI do it.</span>
+          </h1>
+
+          <p className="text-base text-white/55 leading-relaxed max-w-xs">
+            One workspace. Every voice heard. Zero meetings wasted. Build a
+            culture where async actually works.
+          </p>
+
+          {/* Stat cards */}
+          <div className="grid grid-cols-3 gap-3 pt-2">
+            {STATS.map(({ icon: Icon, value, label }) => (
+              <div
+                key={label}
+                className="flex flex-col gap-1.5 rounded-xl p-3"
+                style={{
+                  background: "rgba(255,239,179,0.07)",
+                  border: "1px solid rgba(255,239,179,0.10)",
+                }}
+              >
+                <Icon className="w-4 h-4 text-[#FFEFB3]/60" />
+                <span
+                  className="text-xl font-bold text-[#FFEFB3]"
+                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+                >
+                  {value}
+                </span>
+                <span className="text-[10px] leading-tight text-white/40">
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom tagline */}
+        <div className="relative">
+          <p className="text-sm text-white/35 italic">
+            &ldquo;Built for teams that move fast and communicate even
+            faster.&rdquo;
+          </p>
+        </div>
       </div>
 
-      {/* Signup Card */}
-      <Card className="w-full max-w-md border-border">
-        <CardHeader className="space-y-2">
-          <CardTitle className="text-2xl">Create your account</CardTitle>
-          <CardDescription>
-            Get started with AI-powered async standups
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSignup} className="space-y-4">
+      {/* ── Right form panel ───────────────────────── */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-background">
+        <div className="w-full max-w-sm space-y-8">
+          {/* Mobile logo */}
+          <div className="flex items-center gap-2 lg:hidden">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ background: "#013E37" }}
+            >
+              <Zap className="w-4 h-4 text-[#FFEFB3]" strokeWidth={2.5} />
+            </div>
+            <span
+              className="text-lg font-bold"
+              style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                color: "#013E37",
+              }}
+            >
+              AsyncUp
+            </span>
+          </div>
+
+          {/* Heading */}
+          <div className="space-y-2">
+            <h2
+              className="text-3xl font-bold text-foreground"
+              style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                letterSpacing: "-0.03em",
+              }}
+            >
+              Create your account
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              Free forever for small teams. No credit card required.
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+              <div
+                className="p-3 rounded-xl text-sm font-medium"
+                style={{
+                  background: "rgba(239,68,68,0.08)",
+                  border: "1px solid rgba(239,68,68,0.15)",
+                  color: "#dc2626",
+                }}
+              >
                 {error}
               </div>
             )}
 
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-foreground">
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="email"
+                className="text-sm font-semibold text-foreground"
+              >
                 Email
-              </label>
+              </Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                value={formData.email}
+                onChange={(e) => handleChange("email", e.target.value)}
                 required
                 disabled={loading}
-                className="bg-input border-input"
+                className="h-11 rounded-xl border-border"
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium text-foreground">
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="password"
+                className="text-sm font-semibold text-foreground"
+              >
                 Password
-              </label>
+              </Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Min. 6 characters"
+                value={formData.password}
+                onChange={(e) => handleChange("password", e.target.value)}
                 required
                 disabled={loading}
-                className="bg-input border-input"
+                minLength={6}
+                className="h-11 rounded-xl border-border"
               />
-              <p className="text-xs text-muted-foreground">
-                At least 8 characters
-              </p>
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="confirmPassword"
+                className="text-sm font-semibold text-foreground"
+              >
                 Confirm Password
-              </label>
+              </Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                value={formData.confirmPassword}
+                onChange={(e) =>
+                  handleChange("confirmPassword", e.target.value)
+                }
                 required
                 disabled={loading}
-                className="bg-input border-input"
+                minLength={6}
+                className="h-11 rounded-xl border-border"
               />
             </div>
 
-            <Button
+            <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary hover:bg-primary/90 text-white"
+              className="w-full h-11 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+              style={{
+                background: "linear-gradient(135deg, #013E37 0%, #025748 100%)",
+                color: "#FFEFB3",
+                boxShadow: "0 4px 14px rgba(1,62,55,0.25)",
+              }}
             >
-              {loading ? 'Creating account...' : 'Create account'}
-            </Button>
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Creating
+                  account...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" /> Get started free
+                </>
+              )}
+            </button>
           </form>
 
-          <div className="mt-6 space-y-3 border-t border-border pt-6">
-            <p className="text-sm text-muted-foreground text-center">
-              Already have an account?{' '}
-              <Link
-                href="/auth/login"
-                className="font-medium text-primary hover:underline"
-              >
-                Sign in
-              </Link>
-            </p>
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="flex-1 h-px bg-border" />
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Footer */}
-      <div className="mt-8 text-center text-sm text-muted-foreground">
-        <p>
-          By signing up, you agree to our{' '}
-          <Link href="#" className="text-primary hover:underline">
-            Terms of Service
-          </Link>{' '}
-          and{' '}
-          <Link href="#" className="text-primary hover:underline">
-            Privacy Policy
-          </Link>
-        </p>
+          {/* Login link */}
+          <p className="text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link
+              href="/auth/login"
+              className="font-semibold hover:underline"
+              style={{ color: "#013E37" }}
+            >
+              Sign in
+            </Link>
+          </p>
+
+          {/* Legal */}
+          <p className="text-center text-xs text-muted-foreground/60 leading-relaxed">
+            By creating an account, you agree to our{" "}
+            <Link href="#" className="underline underline-offset-2">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link href="#" className="underline underline-offset-2">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        </div>
       </div>
     </div>
   );

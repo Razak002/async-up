@@ -1,93 +1,250 @@
-'use client';
+"use client";
 
-import React from "react"
-
-import { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const { signIn } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const cb = new URLSearchParams(window.location.search).get("callbackUrl");
+      if (cb) setCallbackUrl(cb);
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
-
     try {
-      const { error: authError } = await signIn(email, password);
-      if (authError) {
-        setError(authError.message || 'Failed to sign in');
+      const { data, error: authError } = await signIn(email, password);
+      if (authError || !data) {
+        setError(authError?.message || "Failed to sign in");
         return;
       }
-      router.push('/dashboard');
-    } catch (err) {
-      setError('An unexpected error occurred');
-      console.error(err);
+      await new Promise((r) => setTimeout(r, 300));
+      router.push(callbackUrl || "/dashboard");
+    } catch {
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted flex flex-col items-center justify-center p-4">
-      {/* Header */}
-      <div className="mb-8 text-center">
-        <Link href="/" className="inline-flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">AG</span>
+    <div className="min-h-screen flex">
+      {/* Left panel — brand */}
+      <div
+        className="hidden lg:flex lg:w-1/2 xl:w-2/5 flex-col justify-between p-12 relative overflow-hidden"
+        style={{
+          background: "linear-gradient(145deg, #013E37 0%, #011F1B 100%)",
+        }}
+      >
+        {/* Dot grid bg */}
+        <div
+          className="absolute inset-0 opacity-10 pointer-events-none"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 1px 1px, #FFEFB3 1px, transparent 0)",
+            backgroundSize: "28px 28px",
+          }}
+        />
+
+        {/* Glow orbs */}
+        <div
+          className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full blur-3xl opacity-10"
+          style={{ background: "#FFEFB3" }}
+        />
+        <div
+          className="absolute bottom-1/3 right-1/4 w-48 h-48 rounded-full blur-3xl opacity-8"
+          style={{ background: "#FFEFB3" }}
+        />
+
+        {/* Logo */}
+        <div className="relative flex items-center gap-3">
+          <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg shrink-0">
+            <Image
+              src="/logo.png"
+              alt="AsyncUp"
+              fill
+              className="object-cover"
+            />
           </div>
-          <span className="font-semibold text-lg text-foreground">
-            Async Standup
+          <span
+            className="text-xl font-bold text-[#FFEFB3]"
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              letterSpacing: "-0.03em",
+            }}
+          >
+            AsyncUp
           </span>
-        </Link>
+        </div>
+
+        {/* Hero copy */}
+        <div className="relative space-y-6">
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
+            style={{
+              background: "rgba(255,239,179,0.12)",
+              border: "1px solid rgba(255,239,179,0.2)",
+              color: "#FFEFB3",
+            }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-[#FFEFB3] animate-pulse" />
+            AI-Powered Team Insights
+          </div>
+          <h1
+            className="text-5xl font-bold text-white leading-[1.08]"
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              letterSpacing: "-0.04em",
+            }}
+          >
+            Keep your team
+            <br />
+            <span style={{ color: "#FFEFB3" }}>in perfect sync.</span>
+          </h1>
+          <p className="text-base text-white/60 leading-relaxed max-w-sm">
+            Async standups that don&apos;t feel async. Collect, summarize, and
+            act on team updates — all powered by AI.
+          </p>
+
+          {/* Feature pills */}
+          <div className="flex flex-wrap gap-2 pt-2">
+            {[
+              "Daily summaries",
+              "Blocker detection",
+              "Team analytics",
+              "Smart insights",
+            ].map((f) => (
+              <span
+                key={f}
+                className="text-xs px-3 py-1.5 rounded-full font-medium"
+                style={{
+                  background: "rgba(255,239,179,0.08)",
+                  color: "rgba(255,239,179,0.75)",
+                  border: "1px solid rgba(255,239,179,0.12)",
+                }}
+              >
+                {f}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom quote */}
+        <div className="relative">
+          <p className="text-sm text-white/40 italic">
+            &ldquo;The fastest way to run standups without running
+            meetings.&rdquo;
+          </p>
+        </div>
       </div>
 
-      {/* Login Card */}
-      <Card className="w-full max-w-md border-border">
-        <CardHeader className="space-y-2">
-          <CardTitle className="text-2xl">Welcome back</CardTitle>
-          <CardDescription>
-            Sign in to your account to continue
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      {/* Right panel — form */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-background">
+        <div className="w-full max-w-sm space-y-8">
+          {/* Mobile logo */}
+          <div className="flex items-center gap-2 lg:hidden">
+            <div className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0">
+              <Image
+                src="/logo.png"
+                alt="AsyncUp"
+                fill
+                className="object-cover"
+              />
+            </div>
+            <span
+              className="text-lg font-bold"
+              style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                color: "#013E37",
+              }}
+            >
+              AsyncUp
+            </span>
+          </div>
+
+          {/* Heading */}
+          <div className="space-y-2">
+            <h2
+              className="text-3xl font-bold text-foreground"
+              style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                letterSpacing: "-0.03em",
+              }}
+            >
+              Welcome back
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              Sign in to your workspace and pick up where you left off.
+            </p>
+          </div>
+
+          {/* Form */}
           <form onSubmit={handleLogin} className="space-y-4">
             {error && (
-              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+              <div
+                className="p-3 rounded-xl text-sm font-medium"
+                style={{
+                  background: "rgba(239,68,68,0.08)",
+                  border: "1px solid rgba(239,68,68,0.15)",
+                  color: "#dc2626",
+                }}
+              >
                 {error}
               </div>
             )}
 
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-foreground">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="email"
+                className="text-sm font-semibold text-foreground"
+              >
                 Email
               </label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
-                className="bg-input border-input"
+                className="h-11 rounded-xl border-border focus:ring-2 focus:border-[#013E37]"
+                style={{ "--tw-ring-color": "#013E37" } as React.CSSProperties}
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium text-foreground">
-                Password
-              </label>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="password"
+                  className="text-sm font-semibold text-foreground"
+                >
+                  Password
+                </label>
+                <Link
+                  href="#"
+                  className="text-xs font-medium hover:underline"
+                  style={{ color: "#013E37" }}
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -96,51 +253,73 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
-                className="bg-input border-input"
+                className="h-11 rounded-xl border-border"
               />
             </div>
 
-            <Button
+            <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary hover:bg-primary/90 text-white"
+              className="w-full h-11 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{
+                background: "linear-gradient(135deg, #013E37 0%, #025748 100%)",
+                color: "#FFEFB3",
+                boxShadow: "0 4px 14px rgba(1,62,55,0.25)",
+              }}
+              onMouseEnter={(e) => {
+                if (!loading)
+                  (e.target as HTMLButtonElement).style.transform =
+                    "translateY(-1px)";
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLButtonElement).style.transform =
+                  "translateY(0)";
+              }}
             >
-              {loading ? 'Signing in...' : 'Sign in'}
-            </Button>
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Signing in...
+                </>
+              ) : (
+                <>
+                  Sign in <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
           </form>
 
-          <div className="mt-6 space-y-3 border-t border-border pt-6">
-            <p className="text-sm text-muted-foreground text-center">
-              Don't have an account?{' '}
-              <Link
-                href="/auth/signup"
-                className="font-medium text-primary hover:underline"
-              >
-                Sign up
-              </Link>
-            </p>
-            <Link
-              href="#"
-              className="text-sm text-primary hover:underline text-center block"
-            >
-              Forgot password?
-            </Link>
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="flex-1 h-px bg-border" />
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Footer */}
-      <div className="mt-8 text-center text-sm text-muted-foreground">
-        <p>
-          By signing in, you agree to our{' '}
-          <Link href="#" className="text-primary hover:underline">
-            Terms of Service
-          </Link>{' '}
-          and{' '}
-          <Link href="#" className="text-primary hover:underline">
-            Privacy Policy
-          </Link>
-        </p>
+          {/* Sign up */}
+          <p className="text-center text-sm text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/auth/signup"
+              className="font-semibold hover:underline"
+              style={{ color: "#013E37" }}
+            >
+              Create one free
+            </Link>
+          </p>
+
+          {/* Legal */}
+          <p className="text-center text-xs text-muted-foreground/60 leading-relaxed">
+            By signing in, you agree to our{" "}
+            <Link href="#" className="underline underline-offset-2">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link href="#" className="underline underline-offset-2">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        </div>
       </div>
     </div>
   );

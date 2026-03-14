@@ -5,13 +5,13 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { useState } from 'react';
+import { API_URL } from '@/lib/api-config';
 
 interface AuthUser {
   id: string;
   email: string;
-  user_metadata?: Record<string, unknown>;
+  user_metadata?: Record<string, string>;
 }
 
 interface AuthState {
@@ -20,121 +20,68 @@ interface AuthState {
   isAuthenticated: boolean;
 }
 
-let supabaseInstance: ReturnType<typeof createClient> | null = null;
-
-function getSupabaseClient() {
-  if (!supabaseInstance) {
-    supabaseInstance = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+function readStoredAuth(): AuthState {
+  if (typeof window === 'undefined') {
+    return { user: null, isLoading: false, isAuthenticated: false };
   }
-  return supabaseInstance;
+  const storedToken = localStorage.getItem('auth-token');
+  const storedUser = localStorage.getItem('auth-user');
+  if (storedToken && storedUser) {
+    try {
+      const user = JSON.parse(storedUser) as AuthUser;
+      return { user, isLoading: false, isAuthenticated: true };
+    } catch {
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('auth-user');
+    }
+  }
+  return { user: null, isLoading: false, isAuthenticated: false };
 }
 
 export function useAuth() {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    isLoading: true,
-    isAuthenticated: false,
-  });
-
-  useEffect(() => {
-    const supabase = getSupabaseClient();
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setState({
-          user: {
-            id: session.user.id,
-            email: session.user.email || '',
-            user_metadata: session.user.user_metadata,
-          },
-          isLoading: false,
-          isAuthenticated: true,
-        });
-      } else {
-        setState({
-          user: null,
-          isLoading: false,
-          isAuthenticated: false,
-        });
-      }
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setState({
-          user: {
-            id: session.user.id,
-            email: session.user.email || '',
-            user_metadata: session.user.user_metadata,
-          },
-          isLoading: false,
-          isAuthenticated: true,
-        });
-      } else {
-        setState({
-          user: null,
-          isLoading: false,
-          isAuthenticated: false,
-        });
-      }
-    });
-
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, []);
+  // Lazy initializer: reads localStorage once on first render — no useEffect needed
+  const [state, setState] = useState<AuthState>(readStoredAuth);
 
   const signUp = async (email: string, password: string) => {
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
+    const res = await fetch(`${API_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, fullName: email.split('@')[0] })
     });
-    return { data, error };
+    const data = await res.json();
+    if (!res.ok) return { data: null, error: { message: data.error || 'Signup failed' } };
+    const user: AuthUser = { id: data._id, email: data.email, user_metadata: { fullName: data.fullName } };
+    localStorage.setItem('auth-token', data.token);
+    localStorage.setItem('auth-user', JSON.stringify(user));
+    setState({ user, isLoading: false, isAuthenticated: true });
+    return { data: { user, session: { access_token: data.token } }, error: null };
   };
 
   const signIn = async (email: string, password: string) => {
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const res = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
     });
-    return { data, error };
+    const data = await res.json();
+    if (!res.ok) return { data: null, error: { message: data.error || 'Login failed' } };
+    const user: AuthUser = { id: data._id, email: data.email, user_metadata: { fullName: data.fullName } };
+    localStorage.setItem('auth-token', data.token);
+    localStorage.setItem('auth-user', JSON.stringify(user));
+    setState({ user, isLoading: false, isAuthenticated: true });
+    return { data: { user, session: { access_token: data.token } }, error: null };
   };
 
   const signOut = async () => {
-    const supabase = getSupabaseClient();
-    const { error } = await supabase.auth.signOut();
-    if (!error) {
-      setState({
-        user: null,
-        isLoading: false,
-        isAuthenticated: false,
-      });
-    }
-    return error;
+    localStorage.removeItem('auth-token');
+    localStorage.removeItem('auth-user');
+    setState({ user: null, isLoading: false, isAuthenticated: false });
+    return null;
   };
 
-  const resetPassword = async (email: string) => {
-    const supabase = getSupabaseClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
-    });
-    return error;
+  const resetPassword = async (_email: string) => {
+    return { message: 'Not implemented yet' };
   };
 
-  return {
-    ...state,
-    signUp,
-    signIn,
-    signOut,
-    resetPassword,
-  };
+  return { ...state, signUp, signIn, signOut, resetPassword };
 }

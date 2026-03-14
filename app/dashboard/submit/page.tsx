@@ -1,17 +1,71 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { API_URL } from '@/lib/api-config';
 import { StandupForm } from '@/components/dashboard/standup-form';
+import { useEffect, useState } from 'react';
 
 export default function SubmitStandupPage() {
   const router = useRouter();
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // This will be connected to real workspace ID
-  const workspaceId = 'demo-workspace';
+  useEffect(() => {
+    async function fetchWorkspace() {
+      try {
+        const token = localStorage.getItem('auth-token');
+        if (!token) throw new Error('No auth token');
+
+        const res = await fetch(`${API_URL}/api/workspaces`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!res.ok) {
+          setError('Workspace not found');
+          console.error('Workspace fetch error:', await res.text());
+          return;
+        }
+
+        const workspaces = await res.json();
+        
+        if (workspaces && workspaces.length > 0) {
+          setWorkspaceId(workspaces[0]._id);
+        } else {
+          setError('You do not belong to any workspace');
+        }
+      } catch (err) {
+        setError('Failed to load workspace');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchWorkspace();
+  }, []);
 
   const handleSuccess = () => {
     router.push('/dashboard');
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-3xl mx-auto flex justify-center items-center h-screen">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (error || !workspaceId) {
+    return (
+      <div className="max-w-3xl mx-auto">
+        <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+          {error || 'Workspace not found'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">

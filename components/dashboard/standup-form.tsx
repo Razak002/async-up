@@ -1,13 +1,12 @@
 'use client';
 
-import React from "react"
-
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { submitStandupAction } from '@/app/actions/standups';
+import { getAuthToken } from '@/lib/auth-token';
 import type { StandupFormData } from '@/types';
 
 interface StandupFormProps {
@@ -47,7 +46,19 @@ export function StandupForm({
     setLoading(true);
 
     try {
-      const result = await submitStandupAction(workspaceId, formData);
+      // Get auth token
+      const token = getAuthToken();
+      
+      if (!token) {
+        setError('Not authenticated. Please sign in again.');
+        setLoading(false);
+        return;
+      }
+
+      console.log('[Form] Submitting with token');
+
+      // Pass token directly to server action
+      const result = await submitStandupAction(workspaceId, formData, token);
 
       if (!result.success) {
         setError(result.error || 'Failed to submit standup');
@@ -67,7 +78,7 @@ export function StandupForm({
       }, 2000);
     } catch (err) {
       setError('An unexpected error occurred');
-      console.error(err);
+      console.error('[Form] Submit error:', err);
     } finally {
       setLoading(false);
     }
@@ -119,7 +130,7 @@ export function StandupForm({
 
             <div className="space-y-2">
               <Label htmlFor="what_next" className="text-base font-semibold text-foreground">
-                What's next
+                What&apos;s next
               </Label>
               <p className="text-sm text-muted-foreground">
                 Outline your priorities and plans for tomorrow

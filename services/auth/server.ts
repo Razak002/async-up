@@ -1,41 +1,44 @@
 /**
  * Server-side Authentication Utilities
  * For use in Server Actions and Route Handlers
+ * Uses JWT tokens passed via Authorization header
  */
 
-import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { headers } from 'next/headers';
+import { API_URL } from '@/lib/api-config';
 
-/**
- * Get the current user's session from cookies
- */
-export async function getSession() {
+export async function getSession(token?: string) {
   try {
-    const cookieStore = await cookies();
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    let authToken = token;
+    if (!authToken) {
+      const headersList = await headers();
+      const authHeader = headersList.get('Authorization');
+      authToken = authHeader?.replace('Bearer ', '') || undefined;
+    }
 
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('[v0] Missing Supabase environment variables for session');
+    if (!authToken) return null;
+
+    const res = await fetch(`${API_URL}/api/auth/me`, {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+      cache: 'no-store'
+    });
+
+    if (!res.ok) {
       return null;
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          cookie: cookieStore.toString(),
-        },
-      },
-    });
-
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    
-    console.log('[v0] Session retrieved:', session ? 'found' : 'not found');
-    return session;
+    const userData = await res.json();
+    return {
+      user: {
+        id: userData._id,
+        email: userData.email,
+        user_metadata: { fullName: userData.fullName }
+      }
+    };
   } catch (error) {
-    console.error('[v0] Error getting session:', error);
+    console.error('[Auth] Error getting session:', error);
     return null;
   }
 }
@@ -43,40 +46,15 @@ export async function getSession() {
 /**
  * Get the current authenticated user
  */
-export async function getCurrentUser() {
+export async function getCurrentUser(token?: string) {
   try {
-    const session = await getSession();
-    if (!session) {
-      console.log('[v0] No session found - user not authenticated');
+    const session = await getSession(token);
+    if (!session || !session.user) {
       return null;
     }
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('[v0] Missing Supabase environment variables');
-      return null;
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      },
-    });
-
-    const { data, error } = await supabase.auth.getUser();
-    if (error) {
-      console.error('[v0] Error fetching user:', error.message);
-      return null;
-    }
-
-    console.log('[v0] User retrieved:', data.user?.id);
-    return data.user;
+    return session.user;
   } catch (error) {
-    console.error('[v0] Unexpected error in getCurrentUser:', error);
+    console.error('[Auth] Unexpected error in getCurrentUser:', error);
     return null;
   }
 }
@@ -84,36 +62,32 @@ export async function getCurrentUser() {
 /**
  * Get the current user's workspaces
  */
-export async function getCurrentUserWorkspaces() {
-  const user = await getCurrentUser();
+export async function getCurrentUserWorkspaces(token?: string) {
+  const user = await getCurrentUser(token);
   if (!user) return [];
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  try {
+    let authToken = token;
+    if (!authToken) {
+      const headersList = await headers();
+      const authHeader = headersList.get('Authorization');
+      authToken = authHeader?.replace('Bearer ', '') || undefined;
+    }
 
-  const { data, error } = await supabase
-    .from('workspaces')
-    .select(
-      `
-      id,
-      name,
-      slug,
-      created_by,
-      created_at,
-      updated_at,
-      workspace_members!inner(user_id, role)
-    `
-    )
-    .eq('workspace_members.user_id', user.id);
+    if (!authToken) return [];
 
-  if (error) {
-    console.error('[v0] Error fetching workspaces:', error);
+    const res = await fetch(`${API_URL}/api/workspaces`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      cache: 'no-store'
+    });
+
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error('[Workspaces] Error fetching workspaces:', error);
     return [];
   }
-
-  return data || [];
 }
 
 /**
@@ -121,22 +95,32 @@ export async function getCurrentUserWorkspaces() {
  */
 export async function isWorkspaceAdmin(
   workspaceId: string,
-  userId: string
+  _userId: string,
+  token?: string
 ): Promise<boolean> {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  try {
+    let authToken = token;
+    if (!authToken) {
+      const headersList = await headers();
+      const authHeader = headersList.get('Authorization');
+      authToken = authHeader?.replace('Bearer ', '') || undefined;
+    }
 
-  const { data, error } = await supabase
-    .from('workspace_members')
-    .select('role')
-    .eq('workspace_id', workspaceId)
-    .eq('user_id', userId)
-    .single();
+    if (!authToken) return false;
 
-  if (error) return false;
-  return data?.role === 'admin';
+    const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/access`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      cache: 'no-store'
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return data.role === 'admin';
+    }
+  } catch (error) {
+    console.error('[Workspaces] Error checking admin status:', error);
+  }
+  return false;
 }
 
 /**
@@ -144,20 +128,27 @@ export async function isWorkspaceAdmin(
  */
 export async function hasWorkspaceAccess(
   workspaceId: string,
-  userId: string
+  _userId: string,
+  token?: string
 ): Promise<boolean> {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  try {
+    let authToken = token;
+    if (!authToken) {
+      const headersList = await headers();
+      const authHeader = headersList.get('Authorization');
+      authToken = authHeader?.replace('Bearer ', '') || undefined;
+    }
 
-  const { data, error } = await supabase
-    .from('workspace_members')
-    .select('id')
-    .eq('workspace_id', workspaceId)
-    .eq('user_id', userId)
-    .single();
+    if (!authToken) return false;
 
-  if (error) return false;
-  return !!data;
+    const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/access`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+      cache: 'no-store'
+    });
+
+    return res.ok;
+  } catch (error) {
+    console.error('[Workspaces] Error checking workspace access:', error);
+    return false;
+  }
 }

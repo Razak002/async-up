@@ -53,16 +53,6 @@ export interface Summary {
   generated_at: string;
 }
 
-// Slack config types
-export interface SlackConfig {
-  id: string;
-  workspace_id: string;
-  webhook_url: string;
-  channel_id: string;
-  notifications_enabled: boolean;
-  created_at: string;
-  updated_at: string;
-}
 
 // User profile (extended from Supabase auth)
 export interface UserProfile {
@@ -83,7 +73,7 @@ export interface ApiResponse<T> {
 export interface ApiError {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 // Dashboard view types

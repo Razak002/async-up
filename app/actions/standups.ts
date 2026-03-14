@@ -3,143 +3,92 @@
  * Handle standup submission, retrieval, and management
  */
 
+/**
+ * Standup Server Actions
+ * Handle standup submission, retrieval, and management
+ */
+
 'use server';
 
-import { createClient } from '@supabase/supabase-js';
-import { getCurrentUser, hasWorkspaceAccess } from '@/services/auth/server';
-import {
-  createStandup,
-  getStandupsByDate,
-  getUserStandupForDate,
-  updateStandup,
-  getSubmissionStats,
-} from '@/services/db/standups';
+import { getCurrentUser } from '@/services/auth/server';
 import type { ApiResponse, Standup, StandupFormData } from '@/types';
+import { API_URL } from '@/lib/api-config';
 
 /**
  * Submit a new standup for today
  */
+
 export async function submitStandupAction(
   workspaceId: string,
-  data: StandupFormData
+  data: StandupFormData,
+  authToken?: string
 ): Promise<ApiResponse<Standup>> {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUser(authToken);
     if (!user) {
-      return {
-        success: false,
-        error: 'Not authenticated',
-      };
+      return { success: false, error: 'Not authenticated. Please sign in again.' };
     }
-
-    // Check workspace access
-    const hasAccess = await hasWorkspaceAccess(workspaceId, user.id);
-    if (!hasAccess) {
-      return {
-        success: false,
-        error: 'You do not have access to this workspace',
-      };
-    }
-
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    const today = new Date().toISOString().split('T')[0];
 
     // Check if already submitted today
-    const existing = await getUserStandupForDate(
-      client,
-      workspaceId,
-      user.id,
-      today
-    );
-    if (existing) {
-      return {
-        success: false,
-        error: 'You have already submitted a standup for today',
-      };
+    const today = new Date().toISOString().split('T')[0];
+    const checkRes = await fetch(`${API_URL}/api/standups/workspace/${workspaceId}/date/${today}`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    });
+    
+    if (checkRes.ok) {
+        const standups = await checkRes.json();
+        const existing = standups.find((s: { user_id?: string; _id?: string }) => s.user_id === user.id);
+        if (existing) {
+          return { success: false, error: 'You have already submitted a standup for today' };
+        }
     }
 
-    // Create standup
-    const standup = await createStandup(client, {
-      workspace_id: workspaceId,
-      user_id: user.id,
-      date: today,
-      submission_method: 'dashboard',
-      ...data,
+    // Ensure access check happens at the API level ideally, but we'll post directly
+    const res = await fetch(`${API_URL}/api/standups`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        workspace_id: workspaceId,
+        date: today,
+        submission_method: 'dashboard',
+        ...data
+      })
     });
+
+    const standup = await res.json();
+
+    if (!res.ok) {
+      return { success: false, error: standup.error || 'Failed to submit standup' };
+    }
 
     return {
       success: true,
-      data: standup,
-      message: 'Standup submitted successfully',
+      data: {
+        ...standup,
+        id: standup._id // Map _id back to id for frontend compatibility
+      },
+      message: 'Standup submitted successfully'
     };
   } catch (error) {
-    console.error('[v0] Error submitting standup:', error);
+    console.error('[Standups] Error:', error);
     return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to submit standup',
+       success: false,
+       error: error instanceof Error ? error.message : 'Failed to submit standup'
     };
   }
 }
-
-/**
- * Update an existing standup
- */
 export async function updateStandupAction(
-  standupId: string,
-  data: Partial<StandupFormData>
+  _standupId: string,
+  _data: Partial<StandupFormData>,
+  _authToken?: string
 ): Promise<ApiResponse<Standup>> {
-  try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return {
-        success: false,
-        error: 'Not authenticated',
-      };
-    }
-
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    // Get standup to verify ownership
-    const { data: standup, error: fetchError } = await client
-      .from('standups')
-      .select()
-      .eq('id', standupId)
-      .single();
-
-    if (fetchError || !standup) {
-      return {
-        success: false,
-        error: 'Standup not found',
-      };
-    }
-
-    if (standup.user_id !== user.id) {
-      return {
-        success: false,
-        error: 'You can only update your own standups',
-      };
-    }
-
-    const updated = await updateStandup(client, standupId, data);
-
-    return {
-      success: true,
-      data: updated,
-      message: 'Standup updated successfully',
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to update standup',
-    };
-  }
+  return {
+    success: false,
+    error: 'Direct standup update not implemented yet via Next.js Action',
+  };
 }
 
 /**
@@ -147,31 +96,24 @@ export async function updateStandupAction(
  */
 export async function getStandupsByDateAction(
   workspaceId: string,
-  date: string
+  date: string,
+  authToken?: string
 ): Promise<ApiResponse<Standup[]>> {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return {
-        success: false,
-        error: 'Not authenticated',
-      };
+    if (!authToken) {
+      return { success: false, error: 'Not authenticated' };
     }
 
-    const hasAccess = await hasWorkspaceAccess(workspaceId, user.id);
-    if (!hasAccess) {
-      return {
-        success: false,
-        error: 'You do not have access to this workspace',
-      };
+    const res = await fetch(`${API_URL}/api/standups/workspace/${workspaceId}/date/${date}`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+        return { success: false, error: data.error };
     }
 
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    const standups = await getStandupsByDate(client, workspaceId, date);
+    const standups = data.map((s: { _id?: string; [key: string]: unknown }) => ({ ...s, id: s._id }));
 
     return {
       success: true,
@@ -180,8 +122,7 @@ export async function getStandupsByDateAction(
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Failed to fetch standups',
+      error: error instanceof Error ? error.message : 'Failed to fetch standups',
     };
   }
 }
@@ -191,47 +132,33 @@ export async function getStandupsByDateAction(
  */
 export async function getSubmissionStatsAction(
   workspaceId: string,
-  date: string
-): Promise<
-  ApiResponse<{
-    totalMembers: number;
-    submitted: number;
-    rate: number;
-  }>
-> {
+  date: string,
+  authToken?: string
+): Promise<ApiResponse<{ totalMembers: number; submitted: number; rate: number }>> {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return {
-        success: false,
-        error: 'Not authenticated',
-      };
+    if (!authToken) {
+      return { success: false, error: 'Not authenticated' };
     }
 
-    const hasAccess = await hasWorkspaceAccess(workspaceId, user.id);
-    if (!hasAccess) {
-      return {
-        success: false,
-        error: 'You do not have access to this workspace',
-      };
+    // Call custom Express stats endpoint (we map it to our new custom Node.js endpoint below)
+    const res = await fetch(`${API_URL}/api/standups/workspace/${workspaceId}/date/${date}/stats`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        return { success: false, error: data.error };
     }
-
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    const stats = await getSubmissionStats(client, workspaceId, date);
 
     return {
       success: true,
-      data: stats,
+      data: data,
     };
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Failed to fetch statistics',
+      error: error instanceof Error ? error.message : 'Failed to fetch statistics',
     };
   }
 }
@@ -241,46 +168,34 @@ export async function getSubmissionStatsAction(
  */
 export async function getUserStandupAction(
   workspaceId: string,
-  date: string
+  date: string,
+  authToken?: string
 ): Promise<ApiResponse<Standup | null>> {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUser(authToken);
     if (!user) {
-      return {
-        success: false,
-        error: 'Not authenticated',
-      };
+      return { success: false, error: 'Not authenticated' };
     }
 
-    const hasAccess = await hasWorkspaceAccess(workspaceId, user.id);
-    if (!hasAccess) {
-      return {
-        success: false,
-        error: 'You do not have access to this workspace',
-      };
+    const res = await fetch(`${API_URL}/api/standups/workspace/${workspaceId}/date/${date}`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    });
+
+    const standups = await res.json();
+    if (!res.ok) {
+        return { success: false, error: standups.error };
     }
 
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    const standup = await getUserStandupForDate(
-      client,
-      workspaceId,
-      user.id,
-      date
-    );
+    const standup = standups.find((s: { user_id?: string; _id?: string }) => s.user_id === user.id);
 
     return {
       success: true,
-      data: standup,
+      data: standup ? { ...standup, id: standup._id } : null,
     };
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Failed to fetch standup',
+      error: error instanceof Error ? error.message : 'Failed to fetch standup',
     };
   }
 }

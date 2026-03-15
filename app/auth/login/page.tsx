@@ -159,7 +159,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm space-y-8">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 lg:hidden">
-            <div className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0">
+            <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg shrink-0">
               <Image
                 src="/logo.png"
                 alt="AsyncUp"
@@ -168,10 +168,10 @@ export default function LoginPage() {
               />
             </div>
             <span
-              className="text-lg font-bold"
+              className="text-xl font-bold text-[#f3d773]"
               style={{
                 fontFamily: "'Space Grotesk', sans-serif",
-                color: "#013E37",
+                letterSpacing: "-0.03em",
               }}
             >
               AsyncUp

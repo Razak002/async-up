@@ -1,6 +1,7 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { ArrowRight, CheckCircle2, Users, Zap, BarChart3 } from 'lucide-react';
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, CheckCircle2, Users, Zap, BarChart3 } from "lucide-react";
+import Image from "next/image";
 
 export default function LandingPage() {
   return (
@@ -9,19 +10,34 @@ export default function LandingPage() {
       <nav className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">AG</span>
+            <div className="relative flex items-center gap-3">
+              <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg shrink-0">
+                <Image
+                  src="/logo.png"
+                  alt="AsyncUp"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <span
+                className="text-xl font-bold text-[#f3d773]"
+                style={{
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  letterSpacing: "-0.03em",
+                }}
+              >
+                AsyncUp
+              </span>
             </div>
-            <span className="font-semibold text-lg text-foreground">
-              Async Standup
-            </span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/auth/login">
               <Button variant="ghost">Log in</Button>
             </Link>
             <Link href="/auth/signup">
-              <Button className="bg-primary hover:bg-primary/90">Sign up</Button>
+              <Button className="bg-primary hover:bg-primary/90">
+                Sign up
+              </Button>
             </Link>
           </div>
         </div>
@@ -69,24 +85,27 @@ export default function LandingPage() {
           {[
             {
               icon: <Zap className="w-6 h-6 text-primary" />,
-              title: 'AI-Powered Summaries',
+              title: "AI-Powered Summaries",
               description:
-                'Automatically summarize team standups into actionable insights and blockers.',
+                "Automatically summarize team standups into actionable insights and blockers.",
             },
             {
               icon: <Users className="w-6 h-6 text-primary" />,
-              title: 'Async First',
+              title: "Async First",
               description:
-                'No more sync meetings. Async submissions + automated digests = happier teams.',
+                "No more sync meetings. Async submissions + automated digests = happier teams.",
             },
             {
               icon: <BarChart3 className="w-6 h-6 text-primary" />,
-              title: 'Track Progress',
+              title: "Track Progress",
               description:
-                'Manager dashboards show submission rates, blockers, and team velocity.',
+                "Manager dashboards show submission rates, blockers, and team velocity.",
             },
           ].map((feature, idx) => (
-            <div key={idx} className="p-6 border border-border rounded-lg bg-card hover:border-primary/20 transition-colors">
+            <div
+              key={idx}
+              className="p-6 border border-border rounded-lg bg-card hover:border-primary/20 transition-colors"
+            >
               <div className="mb-4">{feature.icon}</div>
               <h3 className="font-semibold text-lg text-foreground mb-2">
                 {feature.title}
@@ -112,12 +131,12 @@ export default function LandingPage() {
 
         <div className="grid sm:grid-cols-2 gap-8">
           {[
-            'Save 2-3 hours per week on standups',
-            '0 context loss - async = deep focus',
-            'AI catches blockers automatically',
-            'Manager visibility without micromanaging',
-            'Slack notifications keep teams in sync',
-            'Works for any team size',
+            "Save 2-3 hours per week on standups",
+            "0 context loss - async = deep focus",
+            "AI catches blockers automatically",
+            "Manager visibility without micromanaging",
+            "Slack notifications keep teams in sync",
+            "Works for any team size",
           ].map((benefit, idx) => (
             <div key={idx} className="flex gap-4 items-start">
               <CheckCircle2 className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" />
@@ -134,8 +153,8 @@ export default function LandingPage() {
             Stop wasting time on standups
           </h2>
           <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
-            Join teams who've replaced their daily standups with async updates
-            and AI-powered summaries.
+            Join teams who&apos;ve replaced their daily standups with async
+            updates and AI-powered summaries.
           </p>
           <Link href="/auth/signup">
             <Button
@@ -158,12 +177,25 @@ export default function LandingPage() {
           <div className="grid sm:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
-                  <span className="text-white font-bold text-xs">AG</span>
+                <div className="relative flex items-center gap-3">
+                  <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg shrink-0">
+                    <Image
+                      src="/logo.png"
+                      alt="AsyncUp"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <span
+                    className="text-xl font-bold text-[#f3d773]"
+                    style={{
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      letterSpacing: "-0.03em",
+                    }}
+                  >
+                    AsyncUp
+                  </span>
                 </div>
-                <span className="font-semibold text-foreground">
-                  Async Standup
-                </span>
               </div>
               <p className="text-sm text-muted-foreground">
                 AI-powered async standups for remote teams
@@ -171,16 +203,16 @@ export default function LandingPage() {
             </div>
             {[
               {
-                title: 'Product',
-                links: ['Features', 'Pricing', 'Dashboard'],
+                title: "Product",
+                links: ["Features", "Pricing", "Dashboard"],
               },
               {
-                title: 'Company',
-                links: ['About', 'Blog', 'Twitter'],
+                title: "Company",
+                links: ["About", "Blog", "Twitter"],
               },
               {
-                title: 'Legal',
-                links: ['Privacy', 'Terms', 'Contact'],
+                title: "Legal",
+                links: ["Privacy", "Terms", "Contact"],
               },
             ].map((col, idx) => (
               <div key={idx}>
@@ -204,7 +236,7 @@ export default function LandingPage() {
           </div>
           <div className="border-t border-border pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              © 2024 Async Standup Generator. All rights reserved.
+              © 2026 Async Standup Generator. All rights reserved.
             </p>
             <div className="flex gap-6">
               <a

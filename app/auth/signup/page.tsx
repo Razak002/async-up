@@ -14,7 +14,6 @@ import {
 import { setAuthToken } from "@/lib/auth-token";
 import {
   Loader2,
-  Zap,
   Sparkles,
   Users,
   BrainCircuit,
@@ -156,7 +155,7 @@ export default function SignupPage() {
         </div>
 
         {/* Hero copy — different from login */}
-        <div className="relative space-y-7">
+        <div className="relative space-y-7 mt-10">
           <div
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
             style={{
@@ -228,21 +227,25 @@ export default function SignupPage() {
         <div className="w-full max-w-sm space-y-8">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 lg:hidden">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: "#013E37" }}
-            >
-              <Zap className="w-4 h-4 text-[#FFEFB3]" strokeWidth={2.5} />
+            <div className="relative flex items-center gap-3">
+              <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg shrink-0">
+                <Image
+                  src="/logo.png"
+                  alt="AsyncUp"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <span
+                className="text-xl font-bold text-[#f3d773]"
+                style={{
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  letterSpacing: "-0.03em",
+                }}
+              >
+                AsyncUp
+              </span>
             </div>
-            <span
-              className="text-lg font-bold"
-              style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                color: "#013E37",
-              }}
-            >
-              AsyncUp
-            </span>
           </div>
 
           {/* Heading */}

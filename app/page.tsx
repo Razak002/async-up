@@ -1,9 +1,49 @@
+"use client";
+
+import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle2, Users, Zap, BarChart3 } from "lucide-react";
 import Image from "next/image";
+import * as Dialog from "@radix-ui/react-dialog";
+import { toast } from "sonner";
+import { Sparkles, ArrowRight, CheckCircle2, Users, Zap, BarChart3, X, Play } from "lucide-react";
 
 export default function LandingPage() {
+  const [isOpen, setIsOpen] = useState(false);
+  const handleFeatureSoon = (name: string) => {
+    toast.info(`${name} is coming soon!`, {
+      description: "We're currently building this feature. Stay tuned! 🚀",
+      icon: <Sparkles className="w-4 h-4 text-[#FFEFB3]" />,
+    });
+  };
+
+  const footerNavigation = [
+    {
+      title: "Product",
+      links: [
+        { name: "Features", href: "#", soon: true },
+        { name: "Pricing", href: "#", soon: true },
+        { name: "Dashboard", href: "/dashboard", soon: false },
+      ],
+    },
+    {
+      title: "Company",
+      links: [
+        { name: "About", href: "#", soon: true },
+        { name: "Blog", href: "#", soon: true },
+        { name: "Twitter", href: "https://twitter.com", soon: false, external: true },
+      ],
+    },
+    {
+      title: "Legal",
+      links: [
+        { name: "Privacy", href: "#", soon: true },
+        { name: "Terms", href: "#", soon: true },
+        { name: "Contact", href: "#", soon: true },
+      ],
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
       {/* Navigation */}
@@ -68,19 +108,42 @@ export default function LandingPage() {
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            <Button
-              size="lg"
-              variant="outline"
-              className="text-base h-12 px-8 border-border hover:bg-muted bg-transparent"
-            >
-              Watch Demo
-            </Button>
+
+            <Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
+              <Dialog.Trigger asChild>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="text-base h-12 px-8 border-border hover:bg-muted bg-transparent group"
+                >
+                  <Play className="mr-2 w-4 h-4 fill-primary text-primary group-hover:fill-primary/80" />
+                  Watch Demo
+                </Button>
+              </Dialog.Trigger>
+              <Dialog.Portal>
+                <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" />
+                <Dialog.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] gap-4 border border-border bg-background p-1 shadow-2xl duration-200 sm:rounded-2xl">
+                  <div className="relative aspect-video overflow-hidden rounded-xl bg-black">
+                    <video
+                      src="/AsyncUp_Demo_Video.mp4"
+                      controls
+                      autoPlay
+                      className="h-full w-full object-contain"
+                    />
+                    <Dialog.Close className="absolute right-4 top-4 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70 outline-none">
+                      <X className="h-5 w-5" />
+                      <span className="sr-only">Close</span>
+                    </Dialog.Close>
+                  </div>
+                </Dialog.Content>
+              </Dialog.Portal>
+            </Dialog.Root>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+      <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <div className="grid md:grid-cols-3 gap-8">
           {[
             {
@@ -174,9 +237,9 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border bg-background mt-16 sm:mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid sm:grid-cols-4 gap-8 mb-8">
+          <div className="grid sm:grid-cols-4 gap-12 mb-12">
             <div>
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-6">
                 <div className="relative flex items-center gap-3">
                   <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg shrink-0">
                     <Image
@@ -197,57 +260,82 @@ export default function LandingPage() {
                   </span>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground">
-                AI-powered async standups for remote teams
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                AI-powered async standups for distributed teams. Reclaim your calendar, one update at a time.
               </p>
             </div>
-            {[
-              {
-                title: "Product",
-                links: ["Features", "Pricing", "Dashboard"],
-              },
-              {
-                title: "Company",
-                links: ["About", "Blog", "Twitter"],
-              },
-              {
-                title: "Legal",
-                links: ["Privacy", "Terms", "Contact"],
-              },
-            ].map((col, idx) => (
-              <div key={idx}>
-                <h4 className="font-semibold text-foreground mb-4">
+
+            {footerNavigation.map((col) => (
+              <div key={col.title}>
+                <h4 className="font-semibold text-foreground mb-6 uppercase tracking-wider text-xs">
                   {col.title}
                 </h4>
-                <ul className="space-y-2">
-                  {col.links.map((link, linkIdx) => (
-                    <li key={linkIdx}>
-                      <a
-                        href="#"
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {link}
-                      </a>
+                <ul className="space-y-4">
+                  {col.links.map((link) => (
+                    <li key={link.name}>
+                      <div className="flex items-center gap-2 group">
+                        {link.soon ? (
+                          <button
+                            onClick={() => handleFeatureSoon(link.name)}
+                            className="text-sm text-muted-foreground hover:text-foreground transition-all duration-200 flex items-center gap-2"
+                          >
+                            {link.name}
+                            <span 
+                              className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter"
+                              style={{ 
+                                background: "#FFEFB3",
+                                color: "#013e37",
+                                border: "1px solid rgba(255, 239, 179, 0.2)"
+                              }}
+                            >
+                              Soon
+                            </span>
+                          </button>
+                        ) : link.external ? (
+                          <a
+                            href={link.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-muted-foreground hover:text-foreground transition-all duration-200"
+                          >
+                            {link.name}
+                          </a>
+                        ) : (
+                          <Link
+                            href={link.href}
+                            className="text-sm text-muted-foreground hover:text-foreground transition-all duration-200"
+                          >
+                            {link.name}
+                          </Link>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>
               </div>
             ))}
           </div>
-          <div className="border-t border-border pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+
+          <div className="border-t border-border pt-8 flex flex-col sm:flex-row justify-between items-center gap-6">
             <p className="text-sm text-muted-foreground">
               © 2026 Async Standup Generator. All rights reserved.
             </p>
-            <div className="flex gap-6">
+            <div className="flex gap-8 items-center">
               <a
-                href="#"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                href="https://twitter.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-muted-foreground hover:text-[#FFEFB3] transition-colors"
+                aria-label="Follow us on Twitter"
               >
                 Twitter
               </a>
               <a
-                href="#"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                href="https://github.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-muted-foreground hover:text-[#FFEFB3] transition-colors"
+                aria-label="View our GitHub"
               >
                 GitHub
               </a>

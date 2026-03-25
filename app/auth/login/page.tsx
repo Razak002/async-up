@@ -4,15 +4,36 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, ArrowRight } from "lucide-react";
 
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+
 export default function LoginPage() {
   const router = useRouter();
   const { signIn } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    mode: "onChange",
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
@@ -24,13 +45,12 @@ export default function LoginPage() {
     }
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: LoginFormValues) => {
     setError("");
     setLoading(true);
     try {
-      const { data, error: authError } = await signIn(email, password);
-      if (authError || !data) {
+      const { data: authData, error: authError } = await signIn(data.email, data.password);
+      if (authError || !authData) {
         setError(authError?.message || "Failed to sign in");
         return;
       }
@@ -195,7 +215,7 @@ export default function LoginPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {error && (
               <div
                 className="p-3 rounded-xl text-sm font-medium"
@@ -220,13 +240,16 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 placeholder="you@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                {...register("email")}
                 disabled={loading}
-                className="h-11 rounded-xl border-border focus:ring-2 focus:border-[#013E37]"
+                className={`h-11 rounded-xl border-border focus:ring-2 focus:border-[#013E37] ${
+                  errors.email ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
+                }`}
                 style={{ "--tw-ring-color": "#013E37" } as React.CSSProperties}
               />
+              {errors.email && (
+                <p className="text-xs text-red-500">{errors.email.message}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -249,12 +272,15 @@ export default function LoginPage() {
                 id="password"
                 type="password"
                 placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+                {...register("password")}
                 disabled={loading}
-                className="h-11 rounded-xl border-border"
+                className={`h-11 rounded-xl border-border ${
+                  errors.password ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
+                }`}
               />
+              {errors.password && (
+                <p className="text-xs text-red-500">{errors.password.message}</p>
+              )}
             </div>
 
             <button

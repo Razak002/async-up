@@ -12,6 +12,9 @@ import {
   getUserWorkspacesAction,
 } from "@/app/actions/auth";
 import { setAuthToken } from "@/lib/auth-token";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import {
   Loader2,
   Sparkles,
@@ -19,6 +22,19 @@ import {
   BrainCircuit,
   TrendingUp,
 } from "lucide-react";
+
+const signupSchema = z
+  .object({
+    email: z.string().email("Please enter a valid email address"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(6, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+type SignupFormValues = z.infer<typeof signupSchema>;
 
 const STATS = [
   { icon: Users, value: "10x", label: "Faster team check-ins" },
@@ -31,10 +47,19 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    confirmPassword: "",
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+    mode: "onChange",
+    defaultValues: {
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
   });
 
   useEffect(() => {
@@ -44,27 +69,13 @@ export default function SignupPage() {
     }
   }, []);
 
-  const handleChange = (field: string, value: string) =>
-    setFormData((prev) => ({ ...prev, [field]: value }));
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: SignupFormValues) => {
     setError("");
-
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
-    }
-
     setLoading(true);
     try {
       const signupResult = await signUpAction(
-        formData.email,
-        formData.password,
+        data.email,
+        data.password,
       );
       if (!signupResult.success) {
         setError(signupResult.error || "Signup failed");
@@ -72,8 +83,8 @@ export default function SignupPage() {
       }
 
       const signinResult = await signInAction(
-        formData.email,
-        formData.password,
+        data.email,
+        data.password,
       );
       if (!signinResult.success || !signinResult.data?.accessToken) {
         setError("Account created! Please log in.");
@@ -265,7 +276,7 @@ export default function SignupPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {error && (
               <div
                 className="p-3 rounded-xl text-sm font-medium"
@@ -290,12 +301,15 @@ export default function SignupPage() {
                 id="email"
                 type="email"
                 placeholder="you@company.com"
-                value={formData.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                required
+                {...register("email")}
                 disabled={loading}
-                className="h-11 rounded-xl border-border"
+                className={`h-11 rounded-xl border-border ${
+                  errors.email ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
+                }`}
               />
+              {errors.email && (
+                <p className="text-xs text-red-500">{errors.email.message}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -309,13 +323,15 @@ export default function SignupPage() {
                 id="password"
                 type="password"
                 placeholder="Min. 6 characters"
-                value={formData.password}
-                onChange={(e) => handleChange("password", e.target.value)}
-                required
+                {...register("password")}
                 disabled={loading}
-                minLength={6}
-                className="h-11 rounded-xl border-border"
+                className={`h-11 rounded-xl border-border ${
+                  errors.password ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
+                }`}
               />
+              {errors.password && (
+                <p className="text-xs text-red-500">{errors.password.message}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -329,15 +345,15 @@ export default function SignupPage() {
                 id="confirmPassword"
                 type="password"
                 placeholder="••••••••"
-                value={formData.confirmPassword}
-                onChange={(e) =>
-                  handleChange("confirmPassword", e.target.value)
-                }
-                required
+                {...register("confirmPassword")}
                 disabled={loading}
-                minLength={6}
-                className="h-11 rounded-xl border-border"
+                className={`h-11 rounded-xl border-border ${
+                  errors.confirmPassword ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
+                }`}
               />
+              {errors.confirmPassword && (
+                <p className="text-xs text-red-500">{errors.confirmPassword.message}</p>
+              )}
             </div>
 
             <button

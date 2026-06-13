@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, ArrowRight, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowRight } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -64,15 +64,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex relative">
-      <Link
-        href="/"
-        className="absolute top-6 left-6 z-20 flex items-center gap-2 text-sm font-semibold transition-all duration-200 text-muted-foreground hover:text-foreground lg:text-[#FFEFB3]/70 lg:hover:text-[#FFEFB3]"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to home
-      </Link>
-
+    <div className="min-h-screen flex">
       {/* Left panel — brand */}
       <div
         className="hidden lg:flex lg:w-1/2 xl:w-2/5 flex-col justify-between p-12 relative overflow-hidden"
@@ -101,7 +93,7 @@ export default function LoginPage() {
         />
 
         {/* Logo */}
-        <div className="relative flex items-center gap-3">
+        <Link href="/" className="relative flex items-center gap-3 group">
           <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg shrink-0">
             <Image
               src="/logo.png"
@@ -119,7 +111,7 @@ export default function LoginPage() {
           >
             AsyncUp
           </span>
-        </div>
+        </Link>
 
         {/* Hero copy */}
         <div className="relative space-y-6">
@@ -187,23 +179,25 @@ export default function LoginPage() {
         <div className="w-full max-w-sm space-y-8">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 lg:hidden">
-            <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg shrink-0">
-              <Image
-                src="/logo.png"
-                alt="AsyncUp"
-                fill
-                className="object-cover"
-              />
-            </div>
-            <span
-              className="text-xl font-bold text-[#f3d773]"
-              style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                letterSpacing: "-0.03em",
-              }}
-            >
-              AsyncUp
-            </span>
+            <Link href="/" className="relative flex items-center gap-3 group">
+              <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg shrink-0">
+                <Image
+                  src="/logo.png"
+                  alt="AsyncUp"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <span
+                className="text-xl font-bold text-[#f3d773]"
+                style={{
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  letterSpacing: "-0.03em",
+                }}
+              >
+                AsyncUp
+              </span>
+            </Link>
           </div>
 
           {/* Heading */}

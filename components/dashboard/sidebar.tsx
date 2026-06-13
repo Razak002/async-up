@@ -91,7 +91,7 @@ export function Sidebar({ isManager, workspaceName, onClose }: SidebarProps) {
       {/* Logo / Brand */}
       <div className="relative p-6 border-b border-white/10 flex items-center justify-between">
         <Link
-          href="/dashboard"
+          href="/"
           className="flex items-center gap-3 group"
           onClick={onClose}
         >

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Bell, Users, Slack, Loader2 } from "lucide-react";
+import { Bell, Users, Slack, Loader2, User, Sparkles, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { API_URL } from "@/lib/api-config";
@@ -29,8 +29,16 @@ interface MemberData {
   user?: { full_name?: string; email?: string };
 }
 
+const AVATAR_BG_OPTIONS = [
+  { id: "emerald", label: "Emerald Gradient", class: "bg-gradient-to-br from-[#013e37] to-[#011f1b] text-[#FFEFB3] border-[#f3d773]" },
+  { id: "purple", label: "Royal Purple", class: "bg-gradient-to-br from-purple-800 to-purple-950 text-purple-100 border-purple-400" },
+  { id: "blue", label: "Midnight Blue", class: "bg-gradient-to-br from-blue-900 to-blue-950 text-blue-100 border-blue-400" },
+  { id: "crimson", label: "Crimson Spark", class: "bg-gradient-to-br from-rose-800 to-rose-950 text-rose-100 border-rose-400" },
+  { id: "dark", label: "Charcoal Slate", class: "bg-gradient-to-br from-zinc-800 to-zinc-950 text-zinc-100 border-zinc-500" },
+];
+
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState("general");
+  const [activeTab, setActiveTab] = useState("profile");
   const [workspace, setWorkspace] = useState<WorkspaceData | null>(null);
   const [members, setMembers] = useState<MemberData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +52,21 @@ export default function SettingsPage() {
   const [editName, setEditName] = useState("");
   const [editSlug, setEditSlug] = useState("");
 
+  // Personal Profile States
+  const [profileName, setProfileName] = useState("");
+  const [profileEmail, setProfileEmail] = useState("");
+  const [avatarBg, setAvatarBg] = useState("emerald");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const tab = new URLSearchParams(window.location.search).get("tab");
+      if (tab) {
+        setActiveTab(tab);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     async function loadSettings() {
       try {
@@ -53,6 +76,19 @@ export default function SettingsPage() {
           setLoading(false);
           return;
         }
+
+        const storedUser = localStorage.getItem("auth-user");
+        if (storedUser) {
+          try {
+            const userObj = JSON.parse(storedUser);
+            setProfileEmail(userObj.email || "");
+            setProfileName(userObj.user_metadata?.fullName || "");
+            setAvatarBg(userObj.user_metadata?.avatarBg || "emerald");
+          } catch (e) {
+            console.error("Error parsing auth-user", e);
+          }
+        }
+
 
         const wsRes = await fetch(`${API_URL}/api/workspaces`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -90,6 +126,40 @@ export default function SettingsPage() {
     }
     loadSettings();
   }, []);
+
+  const handleSaveProfile = async () => {
+    setIsSavingProfile(true);
+    try {
+      const storedUser = localStorage.getItem("auth-user");
+      if (storedUser) {
+        const userObj = JSON.parse(storedUser);
+        const updatedUser = {
+          ...userObj,
+          user_metadata: {
+            ...userObj.user_metadata,
+            fullName: profileName,
+            avatarBg: avatarBg,
+          }
+        };
+        localStorage.setItem("auth-user", JSON.stringify(updatedUser));
+        
+        // Dispatch custom storage event to notify other components/tabs
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("storage"));
+        }
+        
+        toast.success("Profile updated!", {
+          description: "Your profile settings have been saved successfully.",
+        });
+      }
+    } catch (err) {
+      toast.error("Failed to save profile", {
+        description: "Something went wrong. Please try again.",
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!workspace) return;
@@ -208,8 +278,9 @@ export default function SettingsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-md bg-muted grid-cols-3">
-          <TabsTrigger value="general">General</TabsTrigger>
+        <TabsList className="grid w-full max-w-lg bg-muted grid-cols-4">
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="general">Workspace</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
         </TabsList>
@@ -225,6 +296,89 @@ export default function SettingsPage() {
           </div>
         ) : (
           <>
+            {/* Profile Tab Content */}
+            <TabsContent value="profile" className="space-y-4">
+              <Card className="border-border">
+                <CardHeader>
+                  <CardTitle>Personal Profile</CardTitle>
+                  <CardDescription>
+                    Manage your personal account details and custom avatar
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Avatar section */}
+                  <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-border">
+                    <div className={`w-20 h-20 rounded-full flex items-center justify-center border-4 text-3xl font-bold shadow-lg transition-transform duration-300 hover:scale-105 ${
+                      AVATAR_BG_OPTIONS.find(opt => opt.id === avatarBg)?.class || AVATAR_BG_OPTIONS[0].class
+                    }`}>
+                      {profileName 
+                        ? profileName.charAt(0).toUpperCase()
+                        : profileEmail 
+                          ? profileEmail.charAt(0).toUpperCase()
+                          : <User className="w-8 h-8" />
+                      }
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <Label className="text-sm font-semibold text-foreground">Avatar Background Theme</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {AVATAR_BG_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setAvatarBg(opt.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all duration-200 flex items-center gap-1.5 ${
+                              opt.id === avatarBg 
+                                ? `${opt.class} ring-2 ring-primary scale-105`
+                                : "bg-card text-muted-foreground border-border hover:bg-muted"
+                            }`}
+                          >
+                            <span className={`w-2.5 h-2.5 rounded-full ${opt.id === "emerald" ? "bg-[#f3d773]" : "bg-current"}`} />
+                            {opt.label}
+                            {opt.id === avatarBg && <Check className="w-3 h-3 ml-0.5" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Personal details inputs */}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="profile-name">Full Name</Label>
+                      <Input
+                        id="profile-name"
+                        placeholder="John Doe"
+                        value={profileName}
+                        onChange={(e) => setProfileName(e.target.value)}
+                        className="bg-input border-input"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="profile-email">Email Address</Label>
+                      <Input
+                        id="profile-email"
+                        value={profileEmail}
+                        disabled
+                        className="bg-muted border-input opacity-70 cursor-not-allowed"
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Email address cannot be changed. Contact your workspace administrator for assistance.
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button
+                    className="bg-primary hover:bg-primary/90 text-white"
+                    onClick={handleSaveProfile}
+                    disabled={isSavingProfile}
+                  >
+                    {isSavingProfile && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Save Profile
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             {/* General */}
             <TabsContent value="general" className="space-y-4">
               <Card className="border-border">

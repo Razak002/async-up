@@ -21,7 +21,6 @@ import {
   Users,
   BrainCircuit,
   TrendingUp,
-  ArrowLeft,
 } from "lucide-react";
 
 const signupSchema = z
@@ -117,15 +116,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex relative">
-      <Link
-        href="/"
-        className="absolute top-6 left-6 z-20 flex items-center gap-2 text-sm font-semibold transition-all duration-200 text-muted-foreground hover:text-foreground lg:text-[#FFEFB3]/70 lg:hover:text-[#FFEFB3]"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to home
-      </Link>
-
+    <div className="min-h-screen flex">
       {/* ── Left brand panel ───────────────────────── */}
       <div
         className="hidden lg:flex lg:w-1/2 xl:w-2/5 flex-col justify-between p-12 relative overflow-hidden"
@@ -154,7 +145,7 @@ export default function SignupPage() {
         />
 
         {/* Logo */}
-        <div className="relative flex items-center gap-3">
+        <Link href="/" className="relative flex items-center gap-3 group">
           <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg shrink-0">
             <Image
               src="/logo.png"
@@ -172,7 +163,7 @@ export default function SignupPage() {
           >
             AsyncUp
           </span>
-        </div>
+        </Link>
 
         {/* Hero copy — different from login */}
         <div className="relative space-y-7 mt-10">
@@ -247,7 +238,7 @@ export default function SignupPage() {
         <div className="w-full max-w-sm space-y-8">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 lg:hidden">
-            <div className="relative flex items-center gap-3">
+            <Link href="/" className="relative flex items-center gap-3 group">
               <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg shrink-0">
                 <Image
                   src="/logo.png"
@@ -265,7 +256,7 @@ export default function SignupPage() {
               >
                 AsyncUp
               </span>
-            </div>
+            </Link>
           </div>
 
           {/* Heading */}

@@ -21,6 +21,7 @@ import {
   Users,
   BrainCircuit,
   TrendingUp,
+  ArrowLeft,
 } from "lucide-react";
 
 const signupSchema = z
@@ -116,7 +117,15 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex relative">
+      <Link
+        href="/"
+        className="absolute top-6 left-6 z-20 flex items-center gap-2 text-sm font-semibold transition-all duration-200 text-muted-foreground hover:text-foreground lg:text-[#FFEFB3]/70 lg:hover:text-[#FFEFB3]"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to home
+      </Link>
+
       {/* ── Left brand panel ───────────────────────── */}
       <div
         className="hidden lg:flex lg:w-1/2 xl:w-2/5 flex-col justify-between p-12 relative overflow-hidden"

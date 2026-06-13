@@ -17,20 +17,34 @@ const AVATAR_BG_CLASSES: Record<string, string> = {
   dark: "bg-gradient-to-br from-zinc-800 to-zinc-950 text-zinc-100 border-zinc-500",
 };
 
+interface StoredUser {
+  id: string;
+  email: string;
+  user_metadata?: {
+    fullName?: string;
+    avatarBg?: string;
+  };
+}
+
 export default function LandingPage() {
-  const { isAuthenticated, user } = useAuth();
-  const [mounted, setMounted] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const { user } = useAuth();
+  const [currentUser, setCurrentUser] = useState<StoredUser | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const readUser = () => {
       const storedUser = localStorage.getItem("auth-user");
       if (storedUser) {
         try {
-          setCurrentUser(JSON.parse(storedUser));
+          const parsed = JSON.parse(storedUser) as StoredUser;
+          setTimeout(() => {
+            setCurrentUser(parsed);
+          }, 0);
         } catch {}
+      } else {
+        setTimeout(() => {
+          setCurrentUser(null);
+        }, 0);
       }
     };
     readUser();
@@ -98,7 +112,7 @@ export default function LandingPage() {
             </Link>
           </div>
           <div className="flex items-center gap-4">
-            {mounted && isAuthenticated ? (
+            {currentUser ? (
               <Link href="/dashboard/settings?tab=profile" className="flex items-center gap-2 group">
                 <div 
                   className={`w-10 h-10 rounded-full flex items-center justify-center border-2 font-bold text-sm shadow-md transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg ${

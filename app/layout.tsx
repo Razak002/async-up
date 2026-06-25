@@ -2,6 +2,7 @@ import React from "react";
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "sonner";
+import { ScrollToTop } from "@/components/landing/scroll-to-top";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -69,6 +70,7 @@ export default function RootLayout({
           }}
           richColors
         />
+        <ScrollToTop />
       </body>
     </html>
   );
